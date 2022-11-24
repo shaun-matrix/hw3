@@ -78,7 +78,23 @@ void Fill(CudaArray* out, scalar_t val) {
 ////////////////////////////////////////////////////////////////////////////////
 
 // Untility function to convert contiguous index i to memory location from strides
-
+__device__ CudaVec map_from_index(size_t index, CudaVec shape){
+  CudaVec compact_strides, array_index;
+  compact_strides.size = shape.size;
+  array_index.size = shape.size;
+  size_t stride = 1;
+  for (size_t i = compact_strides.size-1; i >= 0; i--){
+    compact_strides.data[i] = stride;
+    stride *= shape.data[i]; 
+  }
+  size_t cur_index = index;
+  for (size_t i = 0; i < array_index.size; i++){
+    array_index.data[i] = cur_index/compact_strides.data[i];
+    cur_index -= array_index.data[i] * compact_strides.data[i];
+  }
+  //printf("thread index: %d, %d; ", index, array_index.size);
+  return array_index;
+}
 
 
 
@@ -99,7 +115,15 @@ __global__ void CompactKernel(const scalar_t* a, scalar_t* out, size_t size, Cud
   size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
 
   /// BEGIN YOUR SOLUTION
-  
+  if (gid < size){
+    CudaVec array_index = map_from_index(gid, shape);
+    //printf("thread index: %d, %d; ", gid, array_index.size);
+    size_t a_index = 0;
+    for (size_t i = 0; i < array_index.size; i++){
+      a_index += array_index.data[i] * strides.data[i];
+    }
+    out[gid] = a[a_index+offset];
+  }
   /// END YOUR SOLUTION
 }
 

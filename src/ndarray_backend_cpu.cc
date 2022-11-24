@@ -44,6 +44,36 @@ void Fill(AlignedArray* out, scalar_t val) {
 }
 
 
+std::vector<std::vector<uint32_t>> gen_indices(std::vector<uint32_t> shape){
+  size_t ndims = shape.size();
+  size_t nstatus = 1;
+  for (size_t i = 0; i < ndims; i++){
+    nstatus *= shape[i];
+  }
+
+  std::vector<std::vector<uint32_t>> indices;
+  // initial status
+  std::vector<uint32_t> cur_indice(ndims, 0);
+  indices.push_back(cur_indice);
+
+  // loop all indices
+  for (size_t cnt = 0; cnt < nstatus-1; cnt++){
+    // loop to check each dim in a status
+    for (size_t j = ndims-1; j >=0; j--){
+      if (cur_indice[j] == shape[j]-1){
+        cur_indice[j] = 0;
+      }
+      else{
+        cur_indice[j] += 1;
+        break;
+      }
+    }
+    indices.push_back(cur_indice);
+  }
+
+  return indices;
+}
+
 
 
 void Compact(const AlignedArray& a, AlignedArray* out, std::vector<uint32_t> shape,
@@ -63,7 +93,20 @@ void Compact(const AlignedArray& a, AlignedArray* out, std::vector<uint32_t> sha
    *  function will implement here, so we won't repeat this note.)
    */
   /// BEGIN YOUR SOLUTION
-  
+  size_t ndims = shape.size();
+  std::vector<std::vector<uint32_t>> indices = gen_indices(shape);
+  std::vector<std::vector<uint32_t>>::iterator iter;
+  std::vector<uint32_t> indice;
+  size_t cnt = 0;
+  for (iter=indices.begin(); iter != indices.end(); iter++){
+    indice = *iter;
+    // compact data
+    size_t index = 0;
+    for (size_t k = 0; k < ndims; k++){
+      index += strides[k]*indice[k];
+    }
+    out->ptr[cnt++] = a.ptr[index+offset];
+  }
   /// END YOUR SOLUTION
 }
 
@@ -80,7 +123,20 @@ void EwiseSetitem(const AlignedArray& a, AlignedArray* out, std::vector<uint32_t
    *   offset: offset of the *out* array (not a, which has zero offset, being compact)
    */
   /// BEGIN YOUR SOLUTION
-  
+  size_t ndims = shape.size();
+  std::vector<std::vector<uint32_t>> indices = gen_indices(shape);
+  std::vector<std::vector<uint32_t>>::iterator iter;
+  std::vector<uint32_t> indice;
+  size_t cnt = 0;
+  for (iter=indices.begin(); iter != indices.end(); iter++){
+    indice = *iter;
+    // compact data
+    size_t index = 0;
+    for (size_t k = 0; k < ndims; k++){
+      index += strides[k]*indice[k];
+    }
+    out->ptr[index+offset] = a.ptr[cnt++];
+  }
   /// END YOUR SOLUTION
 }
 
@@ -101,7 +157,20 @@ void ScalarSetitem(const size_t size, scalar_t val, AlignedArray* out, std::vect
    */
 
   /// BEGIN YOUR SOLUTION
-  
+  size_t ndims = shape.size();
+  std::vector<std::vector<uint32_t>> indices = gen_indices(shape);
+  std::vector<std::vector<uint32_t>>::iterator iter;
+  std::vector<uint32_t> indice;
+  size_t cnt = 0;
+  for (iter=indices.begin(); iter != indices.end(); iter++){
+    indice = *iter;
+    // compact data
+    size_t index = 0;
+    for (size_t k = 0; k < ndims; k++){
+      index += strides[k]*indice[k];
+    }
+    out->ptr[index+offset] = val;
+  }
   /// END YOUR SOLUTION
 }
 
@@ -122,7 +191,6 @@ void ScalarAdd(const AlignedArray& a, scalar_t val, AlignedArray* out) {
     out->ptr[i] = a.ptr[i] + val;
   }
 }
-
 
 /**
  * In the code the follows, use the above template to create analogous element-wise
@@ -145,7 +213,133 @@ void ScalarAdd(const AlignedArray& a, scalar_t val, AlignedArray* out) {
  */
 
 /// BEGIN YOUR SOLUTION
+void EwiseMul(const AlignedArray& a, const AlignedArray& b, AlignedArray* out) {
+  /**
+   * Set entries in out to be the sum of correspondings entires in a and b.
+   */
+  for (size_t i = 0; i < a.size; i++) {
+    out->ptr[i] = a.ptr[i] * b.ptr[i];
+  }
+}
 
+void ScalarMul(const AlignedArray& a, scalar_t val, AlignedArray* out) {
+  /**
+   * Set entries in out to be the sum of corresponding entry in a plus the scalar val.
+   */
+  for (size_t i = 0; i < a.size; i++) {
+    out->ptr[i] = a.ptr[i] * val;
+  }
+}
+
+void EwiseDiv(const AlignedArray& a, const AlignedArray& b, AlignedArray* out) {
+  /**
+   * Set entries in out to be the sum of correspondings entires in a and b.
+   */
+  for (size_t i = 0; i < a.size; i++) {
+    out->ptr[i] = a.ptr[i] / b.ptr[i];
+  }
+}
+
+void ScalarDiv(const AlignedArray& a, scalar_t val, AlignedArray* out) {
+  /**
+   * Set entries in out to be the sum of corresponding entry in a plus the scalar val.
+   */
+  for (size_t i = 0; i < a.size; i++) {
+    out->ptr[i] = a.ptr[i] / val;
+  }
+}
+
+void ScalarPower(const AlignedArray& a, scalar_t val, AlignedArray* out) {
+  /**
+   * Set entries in out to be the sum of corresponding entry in a plus the scalar val.
+   */
+  for (size_t i = 0; i < a.size; i++) {
+    out->ptr[i] = pow(a.ptr[i], val);
+  }
+}
+
+void EwiseMaximum(const AlignedArray& a, const AlignedArray& b, AlignedArray* out) {
+  /**
+   * Set entries in out to be the sum of correspondings entires in a and b.
+   */
+  for (size_t i = 0; i < a.size; i++) {
+    out->ptr[i] = (a.ptr[i]<b.ptr[i])?b.ptr[i]:a.ptr[i];
+  }
+}
+
+void ScalarMaximum(const AlignedArray& a, scalar_t val, AlignedArray* out) {
+  /**
+   * Set entries in out to be the sum of corresponding entry in a plus the scalar val.
+   */
+  for (size_t i = 0; i < a.size; i++) {
+    out->ptr[i] = (a.ptr[i]<val)?val:a.ptr[i];
+  }
+}
+
+void EwiseEq(const AlignedArray& a, const AlignedArray& b, AlignedArray* out) {
+  /**
+   * Set entries in out to be the sum of correspondings entires in a and b.
+   */
+  const scalar_t eps = 1e-20;
+  for (size_t i = 0; i < a.size; i++) {
+    out->ptr[i] = std::abs(a.ptr[i]-b.ptr[i]) < eps;
+  }
+}
+
+void ScalarEq(const AlignedArray& a, scalar_t val, AlignedArray* out) {
+  /**
+   * Set entries in out to be the sum of corresponding entry in a plus the scalar val.
+   */
+  const scalar_t eps = 1e-20;
+  for (size_t i = 0; i < a.size; i++) {
+    out->ptr[i] = std::abs(a.ptr[i]-val) < eps;
+  }
+}
+
+void EwiseGe(const AlignedArray& a, const AlignedArray& b, AlignedArray* out) {
+  /**
+   * Set entries in out to be the sum of correspondings entires in a and b.
+   */
+  for (size_t i = 0; i < a.size; i++) {
+    out->ptr[i] = a.ptr[i] >= b.ptr[i];
+  }
+}
+
+void ScalarGe(const AlignedArray& a, scalar_t val, AlignedArray* out) {
+  /**
+   * Set entries in out to be the sum of corresponding entry in a plus the scalar val.
+   */
+  for (size_t i = 0; i < a.size; i++) {
+    out->ptr[i] = a.ptr[i] >= val;
+  }
+}
+
+void EwiseLog(const AlignedArray& a, AlignedArray* out) {
+  /**
+   * Set entries in out to be the sum of correspondings entires in a and b.
+   */
+  for (size_t i = 0; i < a.size; i++) {
+    out->ptr[i] = log(a.ptr[i]);
+  }
+}
+
+void EwiseExp(const AlignedArray& a, AlignedArray* out) {
+  /**
+   * Set entries in out to be the sum of correspondings entires in a and b.
+   */
+  for (size_t i = 0; i < a.size; i++) {
+    out->ptr[i] = exp(a.ptr[i]);
+  }
+}
+
+void EwiseTanh(const AlignedArray& a, AlignedArray* out) {
+  /**
+   * Set entries in out to be the sum of correspondings entires in a and b.
+   */
+  for (size_t i = 0; i < a.size; i++) {
+    out->ptr[i] = tanh(a.ptr[i]);
+  }
+}
 /// END YOUR SOLUTION
 
 void Matmul(const AlignedArray& a, const AlignedArray& b, AlignedArray* out, uint32_t m, uint32_t n,
@@ -164,7 +358,15 @@ void Matmul(const AlignedArray& a, const AlignedArray& b, AlignedArray* out, uin
    */
 
   /// BEGIN YOUR SOLUTION
-  
+  for (size_t i = 0; i < m; i++){
+    for (size_t j = 0; j < p; j++){
+      scalar_t elem = 0;
+      for (size_t k = 0; k < n; k++){
+        elem += a.ptr[i*n+k] * b.ptr[k*p+j];
+      }
+      out->ptr[i*p+j] = elem;
+    }
+  }
   /// END YOUR SOLUTION
 }
 
@@ -194,7 +396,15 @@ inline void AlignedDot(const float* __restrict__ a,
   out = (float*)__builtin_assume_aligned(out, TILE * ELEM_SIZE);
 
   /// BEGIN YOUR SOLUTION
-  
+  for (size_t i = 0; i < TILE; i++){
+    for (size_t j = 0; j < TILE; j++){
+      scalar_t elem = 0;
+      for (size_t k = 0; k < TILE; k++){
+        elem += a[i*TILE+k] * b[k*TILE+j];
+      }
+      out[i*TILE+j] += elem;
+    }
+  }
   /// END YOUR SOLUTION
 }
 
@@ -221,6 +431,28 @@ void MatmulTiled(const AlignedArray& a, const AlignedArray& b, AlignedArray* out
    */
   /// BEGIN YOUR SOLUTION
   
+  uint32_t tiled_m = m/TILE;
+  uint32_t tiled_n = n/TILE;
+  uint32_t tiled_p = p/TILE;
+  //init tile block
+  for (size_t i = 0; i < out->size; i++){
+    out->ptr[i] = 0;
+  }
+  uint32_t a_stride0 = n*TILE;
+  uint32_t b_stride0 = p*TILE;
+  uint32_t o_stride0 = p*TILE;
+  uint32_t square_tile = TILE*TILE;
+  // loop the tile block
+  for (size_t i = 0; i < tiled_m; i++){
+    for (size_t j = 0; j < tiled_p; j++){
+      for (size_t k = 0; k < tiled_n; k++){
+        // find start pointer of each tiled block (use index and stride)
+        AlignedDot(a.ptr + i*a_stride0 + k*square_tile, \
+        b.ptr + k*b_stride0 + j*square_tile, \
+        out->ptr + i*o_stride0 + j*square_tile);
+      }
+    }
+  }
   /// END YOUR SOLUTION
 }
 
@@ -235,7 +467,16 @@ void ReduceMax(const AlignedArray& a, AlignedArray* out, size_t reduce_size) {
    */
 
   /// BEGIN YOUR SOLUTION
-  
+  for (size_t i = 0; i < out->size; i++){
+    size_t start = i*reduce_size;
+    scalar_t max = a.ptr[start];
+    for (size_t j = 0; j < reduce_size; j++){
+      if (a.ptr[start + j] > max){
+        max = a.ptr[start+j];
+      }
+    }
+    out->ptr[i] = max;
+  }
   /// END YOUR SOLUTION
 }
 
@@ -250,7 +491,14 @@ void ReduceSum(const AlignedArray& a, AlignedArray* out, size_t reduce_size) {
    */
 
   /// BEGIN YOUR SOLUTION
-  
+  for (size_t i = 0; i < out->size; i++){
+    size_t start = i*reduce_size;
+    scalar_t sum = 0;
+    for (size_t j = 0; j < reduce_size; j++){
+        sum += a.ptr[start+j];
+    }
+    out->ptr[i] = sum;
+  }
   /// END YOUR SOLUTION
 }
 
@@ -292,22 +540,22 @@ PYBIND11_MODULE(ndarray_backend_cpu, m) {
   m.def("ewise_add", EwiseAdd);
   m.def("scalar_add", ScalarAdd);
 
-  // m.def("ewise_mul", EwiseMul);
-  // m.def("scalar_mul", ScalarMul);
-  // m.def("ewise_div", EwiseDiv);
-  // m.def("scalar_div", ScalarDiv);
-  // m.def("scalar_power", ScalarPower);
+  m.def("ewise_mul", EwiseMul);
+  m.def("scalar_mul", ScalarMul);
+  m.def("ewise_div", EwiseDiv);
+  m.def("scalar_div", ScalarDiv);
+  m.def("scalar_power", ScalarPower);
 
-  // m.def("ewise_maximum", EwiseMaximum);
-  // m.def("scalar_maximum", ScalarMaximum);
-  // m.def("ewise_eq", EwiseEq);
-  // m.def("scalar_eq", ScalarEq);
-  // m.def("ewise_ge", EwiseGe);
-  // m.def("scalar_ge", ScalarGe);
+  m.def("ewise_maximum", EwiseMaximum);
+  m.def("scalar_maximum", ScalarMaximum);
+  m.def("ewise_eq", EwiseEq);
+  m.def("scalar_eq", ScalarEq);
+  m.def("ewise_ge", EwiseGe);
+  m.def("scalar_ge", ScalarGe);
 
-  // m.def("ewise_log", EwiseLog);
-  // m.def("ewise_exp", EwiseExp);
-  // m.def("ewise_tanh", EwiseTanh);
+  m.def("ewise_log", EwiseLog);
+  m.def("ewise_exp", EwiseExp);
+  m.def("ewise_tanh", EwiseTanh);
 
   m.def("matmul", Matmul);
   m.def("matmul_tiled", MatmulTiled);
